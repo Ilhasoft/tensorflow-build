@@ -1,8 +1,5 @@
 FROM ubuntu:18.10
 
-ENV TF_VERSION_GIT_TAG=1.13.2
-ENV TF_ROOT=/tensorflow
-
 ENV TF_NEED_CUDA=0
 ENV TF_NEED_GCP=1
 ENV TF_CUDA_COMPUTE_CAPABILITIES=5.2,3.5
@@ -50,14 +47,19 @@ RUN apt install -y \
     wget \
     && rm -rf /var/lib/lists/*
 
-RUN wget https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-installer-linux-x86_64.sh \
-    && chmod +x bazel-0.21.0-installer-linux-x86_64.sh \
-    && ./bazel-0.21.0-installer-linux-x86_64.sh
-
-
+# Install Python dependencies
 RUN bash -c "ln -s /usr/bin/python3 /usr/bin/python; ln -s /usr/bin/pip3 /usr/bin/pip"
-
 RUN pip install numpy wheel keras_preprocessing keras-applications
+
+# Install Bazel
+ENV BAZEL_VERSION="0.24.1"
+RUN wget https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh \
+    && chmod +x bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh \
+    && ./bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh \
+    && rm bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
+
+ENV TF_VERSION_GIT_TAG=1.14.0
+ENV TF_ROOT=/tensorflow
 
 RUN git clone --depth 1 -b v${TF_VERSION_GIT_TAG} "https://github.com/tensorflow/tensorflow.git"
 
@@ -67,7 +69,7 @@ ENV PYTHON_LIB_PATH="/usr/local/lib/python3.6/dist-packages"
 ENV PYTHONPATH="/tensorflow/lib"
 ENV PYTHON_ARG="/tensorflow/lib"
 ENV GCC_HOST_COMPILER_PATH="/usr/bin/gcc"
-ENV CC_OPT_FLAGS="-mavx -mavx2 -mfma -msse4.2"
+ENV CC_OPT_FLAGS="-mavx -mavx2 -mfma -msse4.2 -mavx512f"
 
 RUN cd $TF_ROOT && ./configure
 
